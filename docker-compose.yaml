@@ -35,7 +35,7 @@ services:
     volumes:
       - ./src/core/nginx.conf:/etc/nginx/nginx.conf
       - ./src/core/site_configs:/etc/nginx/conf.d
-      - /etc/ssl/certs:/etc/nginx/certs
+      - ./src/core/nginx/snippets:/etc/nginx/snippets
     ports:
       - 80:80
       - 443:443

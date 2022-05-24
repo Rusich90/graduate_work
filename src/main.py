@@ -16,7 +16,7 @@ app = FastAPI(
 )
 
 
-# app.include_router(billing.router, prefix='/api/v1/billing')
+app.include_router(billing.router, prefix='/api/v1/billing')
 app.include_router(subscription.router, prefix='/api/v1/subscriptions')
 
 

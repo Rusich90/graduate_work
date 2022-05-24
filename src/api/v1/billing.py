@@ -4,6 +4,7 @@ from fastapi import HTTPException
 from fastapi import Request
 from fastapi.responses import RedirectResponse
 
+from core.authentication import get_user
 from db.schemas import TransactionCreate
 from services.billing import AbstractBilling
 from services.billing import get_billing_service
@@ -16,11 +17,12 @@ router = APIRouter()
 @router.post('')
 async def billing(body: TransactionCreate,
                   billing: AbstractBilling = Depends(get_billing_service),
-                  db: AbstractDatabase = Depends(get_db)):
+                  db: AbstractDatabase = Depends(get_db),
+                  current_user = Depends(get_user)):
     response = await billing.payment(body)
     if response.status_code == 200:
         payment = response.json()
-        payment_url = await db.create_transaction(payment, body)
+        payment_url = await db.create_transaction(payment, body, current_user)
 
         return RedirectResponse(payment_url)
     return HTTPException(status_code=500)

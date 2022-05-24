@@ -1,0 +1,25 @@
+@startuml
+skinparam componentStyle uml2
+actor Админ as Admin
+note top of Admin: Просмотр транзакций\nУправление подписками\nВозврат средств
+actor Пользователи as Clients
+component AdminPanel
+component Auth
+component Scheduler
+queue Queue
+note top of Scheduler: Проверка окончания подписки\nАвто продление подписки\nИзменение статуса пользователя
+component Billing
+database DataBase
+
+Admin --> AdminPanel
+Clients --> Billing
+AdminPanel ---> DataBase
+Billing --> DataBase
+Scheduler --> DataBase
+Billing --> Queue
+Scheduler --> Queue
+Queue --> Auth : Изменение подписки пользователя
+
+
+
+@enduml

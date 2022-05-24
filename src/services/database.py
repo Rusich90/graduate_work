@@ -14,7 +14,7 @@ from db.models import Transaction
 class AbstractDatabase(ABC):
 
     @abstractmethod
-    async def create_transaction(self, payment, body):
+    async def create_transaction(self, payment, body, current_user):
         pass
 
     @abstractmethod
@@ -31,11 +31,10 @@ class AlchemyDatabase(AbstractDatabase):
     def __init__(self, session):
         self.session = session
 
-    async def create_transaction(self, payment, body):
-        print(payment)
+    async def create_transaction(self, payment, body, current_user):
         transaction = Transaction(
             id=payment['id'],
-            user_id='8ac3f5ac-b804-451a-8d08-3e9852f47276',
+            user_id=current_user.id,
             subscribe_type_id=body.subscribe_type_id,
             amount=float(payment['amount']['value']),
             description=payment['description'],

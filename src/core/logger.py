@@ -2,7 +2,7 @@ from core.settings import LoggingSettings
 
 config = LoggingSettings()
 
-LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+LOG_FORMAT = '%(levelname)-10s %(name)-15s [%(asctime)s] : %(message)s'
 
 LOG_DEFAULT_HANDLERS = ['console', ]
 

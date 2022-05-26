@@ -1,44 +1,45 @@
 from fastapi import APIRouter
 from fastapi import Depends
-from fastapi import HTTPException
+from fastapi import status, HTTPException
 from fastapi import Request
 from fastapi.responses import RedirectResponse
 
-from core.authentication import get_user
+from core.authentication import get_user, User
 from db.schemas import TransactionCreate
 from services.billing import AbstractBilling
 from services.billing import get_billing_service
 from services.database import AbstractDatabase
 from services.database import get_db
+from db.config import get_session, AsyncSession
+from db.models import SubscribeType
+from db.schemas import OkBody
 
 router = APIRouter()
 
 
-@router.post('')
+@router.post('', status_code=status.HTTP_307_TEMPORARY_REDIRECT)
 async def billing(body: TransactionCreate,
                   billing: AbstractBilling = Depends(get_billing_service),
-                  db: AbstractDatabase = Depends(get_db),
-                  current_user = Depends(get_user)):
-    response = await billing.payment(body)
-    if response.status_code == 200:
-        payment = response.json()
-        payment_url = await db.create_transaction(payment, body, current_user)
+                  db: AsyncSession = Depends(get_session),
+                  current_user: User = Depends(get_user)):
+    subscribe_type = await db.get(SubscribeType, body.subscribe_type_id)
+    if not subscribe_type:
+        msg = "Not correct id"
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=msg)
+    payment_url = await billing.get_payment_url(subscribe_type, current_user)
+    return RedirectResponse(payment_url)
 
-        return RedirectResponse(payment_url)
-    return HTTPException(status_code=500)
 
-
-@router.get('/redirect')
+@router.get('/redirect', status_code=status.HTTP_200_OK, response_model=OkBody)
 async def billing():
+    return OkBody(detail='ok')
 
-    return {"result": "ok"}
 
-
-@router.post('/callback')
+@router.post('/callback', status_code=status.HTTP_200_OK, response_model=OkBody )
 async def billing(request: Request, db: AbstractDatabase = Depends(get_db)):
     payment = await request.json()
     print(payment['object'])
     transaction = await db.update_transaction_status(payment)
     if transaction.status == 'succeeded':
         await db.create_subscribe(transaction)
-    return {"result": "callback"}
+    return OkBody(detail='ok')

@@ -14,11 +14,11 @@ services:
       timeout: 10s
       retries: 5
 
-#  redis:
-#    image: redis:6.2-alpine
-#    restart: always
-#    ports:
-#      - '6379:6379'
+  redis:
+    image: redis:6.2-alpine
+    restart: always
+    ports:
+      - '6379:6379'
 
   app:
     build: .

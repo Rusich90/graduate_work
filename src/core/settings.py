@@ -16,6 +16,15 @@ class DatabaseSettings(BaseSettings):
         return f'{self.engine}://{self.user}:{self.password.get_secret_value()}@{self.host}/{self.db}'
 
 
+class CacheSettings(BaseSettings):
+    host: str
+    port: int
+    expire_time: int
+
+    class Config:
+        env_prefix = "REDIS_"
+
+
 class JWTSettings(BaseSettings):
     algorithm: str
     secret_key: SecretStr

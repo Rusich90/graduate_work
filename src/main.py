@@ -1,10 +1,11 @@
 import uvicorn
 from fastapi import FastAPI
 from fastapi.responses import ORJSONResponse
-
+import aioredis
 from api.v1 import billing
 from api.v1 import subscription
 from core.logger import LOGGING
+from db import cache
 
 app = FastAPI(
     title="Billing API для онлайн-кинотеатра",
@@ -15,6 +16,15 @@ app = FastAPI(
     default_response_class=ORJSONResponse,
 )
 
+
+@app.on_event('startup')
+async def startup():
+    cache.cache = await aioredis.create_redis_pool((cache.config.host, cache.config.port), minsize=10, maxsize=20)
+
+
+@app.on_event('shutdown')
+async def shutdown():
+    await cache.cache.close()
 
 app.include_router(billing.router, prefix='/api/v1/billing')
 app.include_router(subscription.router, prefix='/api/v1/subscriptions')

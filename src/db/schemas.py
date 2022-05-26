@@ -12,6 +12,7 @@ class CustomModel(BaseModel):
         json_loads = orjson.loads
         json_dumps = orjson_dumps
 
+
 class Subscription(CustomModel):
     id: int
     name: str
@@ -23,3 +24,7 @@ class Subscription(CustomModel):
 
 class TransactionCreate(CustomModel):
     subscribe_type_id: int
+
+
+class OkBody(BaseModel):
+    detail: str

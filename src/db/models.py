@@ -3,9 +3,9 @@ import uuid
 from sqlalchemy import Boolean
 from sqlalchemy import Column
 from sqlalchemy import DateTime
+from sqlalchemy import Float
 from sqlalchemy import ForeignKey
 from sqlalchemy import Integer
-from sqlalchemy import Float
 from sqlalchemy import SmallInteger
 from sqlalchemy import String
 from sqlalchemy.dialects.postgresql import UUID
@@ -30,13 +30,14 @@ class Transaction(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, unique=True, nullable=False)
     user_id = Column(UUID(as_uuid=True), nullable=False)
     subscribe_type_id = Column(Integer, ForeignKey("subscribe_types.id"), nullable=False)
-    subscribe_type = relationship("SubscribeType", backref=backref("transactions", lazy=True))
+    subscribe_type = relationship("SubscribeType", backref=backref("transactions"))
     amount = Column(Float)
     description = Column(String, nullable=False)
     status = Column(String, nullable=False)
     failed_reason = Column(String, nullable=True, default=None)
     created_at = Column(DateTime, nullable=False, server_default=func.now())
     updated_at = Column(DateTime, nullable=True, onupdate=func.now())
+    card_4_numbers = Column(SmallInteger)
 
 
 class Subscribe(Base):

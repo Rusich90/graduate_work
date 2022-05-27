@@ -1,3 +1,7 @@
+from datetime import date
+from datetime import datetime
+from uuid import UUID
+
 import orjson
 from pydantic import BaseModel
 
@@ -13,10 +17,33 @@ class CustomModel(BaseModel):
         json_dumps = orjson_dumps
 
 
-class Subscription(CustomModel):
+class SubscriptionTypeSchema(BaseModel):
     id: int
     name: str
     price: int
+
+    class Config:
+        orm_mode = True
+
+
+class SubscriptionSchema(BaseModel):
+    id: UUID
+    subscribe_type: SubscriptionTypeSchema
+    end_date: date
+    auto_renewal: bool
+
+    class Config:
+        orm_mode = True
+
+
+class Transaction(CustomModel):
+    id: UUID
+    description: str
+    amount: int
+    status: str
+    created_at: datetime
+    failed_reason: str = None
+    card_4_numbers: int
 
     class Config:
         orm_mode = True

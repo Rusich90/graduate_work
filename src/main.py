@@ -1,9 +1,10 @@
+import aioredis
 import uvicorn
 from fastapi import FastAPI
 from fastapi.responses import ORJSONResponse
-import aioredis
-from api.v1 import billing
-from api.v1 import subscription
+
+from api.v1 import subscriptions
+from api.v1 import transactions
 from core.logger import LOGGING
 from db import cache
 
@@ -26,8 +27,8 @@ async def startup():
 async def shutdown():
     await cache.cache.close()
 
-app.include_router(billing.router, prefix='/api/v1/billing')
-app.include_router(subscription.router, prefix='/api/v1/subscriptions')
+app.include_router(transactions.router, prefix='/api/v1/transactions')
+app.include_router(subscriptions.router, prefix='/api/v1/subscriptions')
 
 
 if __name__ == '__main__':

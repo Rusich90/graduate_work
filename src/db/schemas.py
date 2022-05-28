@@ -26,14 +26,21 @@ class SubscriptionTypeSchema(BaseModel):
         orm_mode = True
 
 
-class SubscriptionSchema(BaseModel):
+class SubscriptionUpdateSchema(BaseModel):
+    auto_renewal: bool
+
+
+class SubscriptionBaseSchema(BaseModel):
     id: UUID
-    subscribe_type: SubscriptionTypeSchema
-    end_date: date
     auto_renewal: bool
 
     class Config:
         orm_mode = True
+
+
+class SubscriptionSchema(SubscriptionBaseSchema):
+    subscribe_type: SubscriptionTypeSchema
+    end_date: date
 
 
 class Transaction(CustomModel):

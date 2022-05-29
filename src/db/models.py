@@ -27,7 +27,8 @@ class SubscribeType(Base):
 class Transaction(Base):
     __tablename__ = "transactions"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, unique=True, nullable=False)
+    id = Column(UUID(as_uuid=True), default=uuid.uuid4, primary_key=True, unique=True, nullable=False)
+    aggregator_id = Column(UUID(as_uuid=True), unique=True, nullable=True)
     user_id = Column(UUID(as_uuid=True), nullable=False)
     subscribe_type_id = Column(Integer, ForeignKey("subscribe_types.id"), nullable=False)
     subscribe_type = relationship("SubscribeType", backref=backref("transactions"))
@@ -45,7 +46,7 @@ class Subscribe(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, unique=True, nullable=False)
     user_id = Column(UUID(as_uuid=True), nullable=False)
-    transaction_id = Column(UUID(as_uuid=True), ForeignKey("transactions.id"), nullable=False)
+    transaction_id = Column(UUID(as_uuid=True), ForeignKey("transactions.id"), unique=True, nullable=False)
     transaction = relationship("Transaction", backref=backref("subscribes", lazy=True))
     subscribe_type_id = Column(Integer, ForeignKey("subscribe_types.id"), nullable=False)
     subscribe_type = relationship("SubscribeType", backref=backref("subscribes", lazy=True))

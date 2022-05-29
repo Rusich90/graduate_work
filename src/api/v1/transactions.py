@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter
 from fastapi import Depends
 from fastapi import HTTPException
@@ -22,8 +24,13 @@ from services.database import get_db
 
 router = APIRouter()
 
+logger = logging.getLogger(__name__)
 
-@router.get('', response_model=list[Transaction])
+
+@router.get('',
+            tags=['Transactions'],
+            summary='Список всех транзакций юзера',
+            response_model=list[Transaction])
 async def user_transactions(db: AsyncSession = Depends(get_session),
                             current_user: User = Depends(get_user)):
     queryset = await db.execute(select(models.Transaction).where(models.Transaction.user_id == current_user.id))
@@ -31,7 +38,10 @@ async def user_transactions(db: AsyncSession = Depends(get_session),
     return transactions
 
 
-@router.post('', status_code=status.HTTP_307_TEMPORARY_REDIRECT)
+@router.post('',
+             tags=['Transactions'],
+             summary='Создание новой транзакции',
+             status_code=status.HTTP_307_TEMPORARY_REDIRECT)
 async def payment(body: TransactionCreate,
                   billing: AbstractBilling = Depends(get_billing_service),
                   db: AsyncSession = Depends(get_session),
@@ -44,16 +54,24 @@ async def payment(body: TransactionCreate,
     return RedirectResponse(payment_url)
 
 
-@router.get('/redirect', status_code=status.HTTP_200_OK, response_model=OkBody)
+@router.get('/redirect',
+            tags=['Transactions'],
+            summary='Эндпоинты для редиректа после аггрегатора',
+            status_code=status.HTTP_200_OK,
+            response_model=OkBody)
 async def redirect_url():
     return OkBody(detail='ok')
 
 
-@router.post('/callback', status_code=status.HTTP_200_OK, response_model=OkBody )
+@router.post('/callback',
+             tags=['Transactions'],
+             summary='Эндпоинты для коллбэка от аггрегатора',
+             status_code=status.HTTP_200_OK,
+             response_model=OkBody)
 async def payment_callback(request: Request, db: AbstractDatabase = Depends(get_db)):
     payment = await request.json()
     print(payment['object'])
-    transaction = await db.update_transaction_status(payment)
+    transaction = await db.update_transaction(payment)
     if transaction.status == 'succeeded':
         await db.create_subscribe(transaction)
     return OkBody(detail='ok')

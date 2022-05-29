@@ -21,7 +21,10 @@ from db.schemas import SubscriptionUpdateSchema
 router = APIRouter()
 
 
-@router.get('', response_model=list[SubscriptionSchema])
+@router.get('',
+            tags=['Subscriptions'],
+            summary='Список текущих подписок юзера',
+            response_model=list[SubscriptionSchema])
 async def user_subscriptions(db: AsyncSession = Depends(get_session),
                              current_user: User = Depends(get_user)):
     queryset = select(Subscribe).where(
@@ -32,7 +35,10 @@ async def user_subscriptions(db: AsyncSession = Depends(get_session),
     return transactions
 
 
-@router.patch('/{subscription_id}', response_model=SubscriptionBaseSchema)
+@router.patch('/{subscription_id}',
+              tags=['Subscriptions'],
+              summary='Отмена или возврат автоподписки',
+              response_model=SubscriptionBaseSchema)
 async def user_subscriptions(body: SubscriptionUpdateSchema,
                              subscription_id: UUID,
                              db: AsyncSession = Depends(get_session),
@@ -50,7 +56,7 @@ async def user_subscriptions(body: SubscriptionUpdateSchema,
 
 @router.get('/types',
             tags=['Subscriptions'],
-            summary='Список всех подписок',
+            summary='Список типов подписок',
             description='Список всех подписох с их ценами',
             response_model=list[SubscriptionTypeSchema]
             )

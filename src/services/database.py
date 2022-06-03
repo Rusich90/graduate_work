@@ -2,12 +2,15 @@ import datetime
 import logging
 from abc import ABC
 from abc import abstractmethod
+from datetime import date
 
 import sqlalchemy.exc
 from dateutil.relativedelta import relativedelta
 from fastapi import Depends
+from sqlalchemy import Date
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from sqlalchemy.orm import selectinload
 
 from core.authentication import User
 from db.config import get_session
@@ -32,6 +35,10 @@ class AbstractDatabase(ABC):
     async def update_transaction(self, payment: dict):
         pass
 
+    @abstractmethod
+    async def update_subscribe(self, subscribe: Subscribe):
+        pass
+
 
 class AlchemyDatabase(AbstractDatabase):
 
@@ -52,7 +59,6 @@ class AlchemyDatabase(AbstractDatabase):
 
     async def create_subscribe(self, transaction: Transaction) -> None:
         today = datetime.date.today()
-        print(transaction)
         subscribe = Subscribe(
             user_id=transaction.user_id,
             transaction_id=transaction.id,
@@ -66,6 +72,18 @@ class AlchemyDatabase(AbstractDatabase):
         except sqlalchemy.exc.IntegrityError:
             logger.error('Duplicate transaction_id')
         # TODO: Add kafka producer to AUTH
+
+    async def update_subscribe(self, subscribe: Subscribe) -> None:
+        new_end_date = subscribe.end_date + relativedelta(months=+1)
+        subscribe.end_date = new_end_date
+
+    async def get_subscribers(self) -> list[Subscribe]:
+        query = select(Subscribe).where(
+            Subscribe.end_date.cast(Date) == date.today()
+        ).options(selectinload(Subscribe.subscribe_type), selectinload(Subscribe.transaction))
+        queryset = await self.session.execute(query)
+        subscribes = queryset.scalars().all()
+        return subscribes
 
     async def update_transaction(self, payment: dict) -> Transaction:
         query = await self.session.execute(select(Transaction).where(

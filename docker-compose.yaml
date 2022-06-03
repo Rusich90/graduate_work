@@ -10,8 +10,8 @@ services:
       - .env
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -d ${POSTGRES_DB} -U ${POSTGRES_USER}" ]
-      interval: 10s
-      timeout: 10s
+      interval: 3s
+      timeout: 3s
       retries: 5
 
   redis:
@@ -27,6 +27,17 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    env_file:
+      - .env
+
+  worker:
+    build: .
+    command: python3 worker.py
+    volumes:
+      - ./src:/code
+    depends_on:
+      - app
+      - redis
     env_file:
       - .env
 

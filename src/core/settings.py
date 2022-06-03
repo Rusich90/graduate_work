@@ -1,4 +1,5 @@
-from pydantic import BaseSettings, SecretStr
+from pydantic import BaseSettings
+from pydantic import SecretStr
 
 
 class DatabaseSettings(BaseSettings):
@@ -23,6 +24,17 @@ class CacheSettings(BaseSettings):
 
     class Config:
         env_prefix = "REDIS_"
+
+
+class SchedulerSettings(BaseSettings):
+    jobstore: CacheSettings = CacheSettings()
+    subscribe_hour: str
+    subscribe_minute: str
+    pending_hour: str
+    pending_minute: str
+
+    class Config:
+        env_prefix = "SCHEDULER_"
 
 
 class JWTSettings(BaseSettings):

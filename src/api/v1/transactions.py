@@ -42,7 +42,7 @@ async def user_transactions(db: AsyncSession = Depends(get_session),
 @router.post('',
              tags=['Transactions'],
              summary='Создание новой транзакции',
-             status_code=status.HTTP_307_TEMPORARY_REDIRECT)
+             status_code=status.HTTP_302_FOUND)
 async def payment(body: TransactionCreate,
                   billing: AbstractBilling = Depends(get_billing_service),
                   db: AsyncSession = Depends(get_session),
@@ -52,7 +52,7 @@ async def payment(body: TransactionCreate,
         msg = "Not correct id"
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=msg)
     payment_url = await billing.get_payment_url(subscribe_type, current_user)
-    return RedirectResponse(payment_url)
+    return RedirectResponse(payment_url, status_code=status.HTTP_302_FOUND)
 
 
 @router.get('/redirect',

@@ -17,6 +17,8 @@ from db.config import get_session
 from db.models import Subscribe
 from db.models import SubscribeType
 from db.models import Transaction
+from db.models import Refund
+from db.schemas import Payment
 
 logger = logging.getLogger(__name__)
 
@@ -24,19 +26,23 @@ logger = logging.getLogger(__name__)
 class AbstractDatabase(ABC):
 
     @abstractmethod
-    async def create_transaction(self, subscribe_type: Subscribe, current_user: User):
+    async def create_transaction(self, subscribe_type: Subscribe, current_user: User) -> Transaction:
         pass
 
     @abstractmethod
-    async def create_subscribe(self, transaction: Transaction):
+    async def create_subscribe(self, transaction: Transaction) -> None:
         pass
 
     @abstractmethod
-    async def update_transaction(self, payment: dict):
+    async def update_transaction(self, payment: Payment) -> Transaction:
         pass
 
     @abstractmethod
-    async def update_subscribe(self, subscribe: Subscribe):
+    async def update_subscribe(self, subscribe: Subscribe) -> None:
+        pass
+
+    @abstractmethod
+    async def create_refund(self, payment: Payment, transaction: Transaction) -> None:
         pass
 
 
@@ -73,6 +79,21 @@ class AlchemyDatabase(AbstractDatabase):
             logger.error('Duplicate transaction_id')
         # TODO: Add kafka producer to AUTH
 
+    async def create_refund(self, payment: Payment, transaction: Transaction) -> None:
+        refund = Refund(
+            transaction_id=transaction.id,
+            aggregator_id=payment.id,
+            amount=payment.amount,
+            status=payment.status,
+            failed_reason=payment.failed_reason
+        )
+        try:
+            self.session.add(refund)
+            await self.session.flush()
+        except sqlalchemy.exc.IntegrityError:
+            logger.error('Duplicate transaction_id')
+        # TODO: Add kafka producer to AUTH
+
     async def update_subscribe(self, subscribe: Subscribe) -> None:
         new_end_date = subscribe.end_date + relativedelta(months=+1)
         subscribe.end_date = new_end_date
@@ -85,15 +106,16 @@ class AlchemyDatabase(AbstractDatabase):
         subscribes = queryset.scalars().all()
         return subscribes
 
-    async def update_transaction(self, payment: dict) -> Transaction:
+    async def update_transaction(self, payment: Payment) -> Transaction:
+        logger.info(payment)
         query = await self.session.execute(select(Transaction).where(
-            Transaction.aggregator_id == payment['object']['id']
+            Transaction.aggregator_id == str(payment.id)
         ))
         transaction = query.scalar()
-        transaction.status = payment['object']['status']
-        if transaction.status == 'canceled':
-            transaction.failed_reason = payment['object']['cancellation_details']['reason']
-        transaction.card_4_numbers = int(payment['object']['payment_method']['card']['last4'])
+        logger.info(transaction)
+        transaction.status = payment.status
+        transaction.failed_reason = payment.failed_reason
+        transaction.card_4_numbers = payment.card
         return transaction
 
 

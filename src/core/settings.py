@@ -56,6 +56,7 @@ class BillingSettings(BaseSettings):
     id: int
     token: SecretStr
     url: str
+    refund_url: str
     redirect_url: str
 
     class Config:

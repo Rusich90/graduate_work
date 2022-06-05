@@ -53,3 +53,16 @@ class Subscribe(Base):
     start_date = Column(DateTime, nullable=False)
     end_date = Column(DateTime, nullable=False)
     auto_renewal = Column(Boolean, default=True)
+
+
+class Refund(Base):
+    __tablename__ = "refunds"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, unique=True, nullable=False)
+    aggregator_id = Column(UUID(as_uuid=True), unique=True, nullable=True)
+    transaction_id = Column(UUID(as_uuid=True), ForeignKey("transactions.id"), unique=True, nullable=False)
+    transaction = relationship("Transaction", backref=backref("refund"))
+    amount = Column(Float)
+    status = Column(String, nullable=False)
+    failed_reason = Column(String, nullable=True, default=None)
+    created_at = Column(DateTime, nullable=False, server_default=func.now())

@@ -15,7 +15,7 @@ logger = logging.getLogger('worker')
 
 config = SchedulerSettings()
 jobstores = {
-    'default': RedisJobStore(host=config.jobstore.host, port=config.jobstore.port, db=1)
+    'default': RedisJobStore(host=config.jobstore.host, port=config.jobstore.port, db=2)
 }
 scheduler = AsyncIOScheduler(jobstores=jobstores)
 

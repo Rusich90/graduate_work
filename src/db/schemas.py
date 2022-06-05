@@ -1,5 +1,6 @@
 from datetime import date
 from datetime import datetime
+from typing import Optional
 from uuid import UUID
 
 import orjson
@@ -43,7 +44,7 @@ class SubscriptionSchema(SubscriptionBaseSchema):
     end_date: date
 
 
-class Transaction(CustomModel):
+class TransactionDetail(CustomModel):
     id: UUID
     description: str
     amount: int
@@ -60,5 +61,18 @@ class TransactionCreate(CustomModel):
     subscribe_type_id: int
 
 
+class TransactionRefund(CustomModel):
+    transaction_id: UUID
+
+
 class OkBody(BaseModel):
     detail: str
+
+
+class Payment(BaseModel):
+    id: UUID
+    status: str
+    amount: float
+    confirmation_url: Optional[str]
+    card: Optional[int]
+    failed_reason: Optional[str]

@@ -10,7 +10,6 @@ from sqlalchemy.future import select
 
 from core.authentication import User
 from core.authentication import get_user
-from db import models
 from db.config import AsyncSession
 from db.config import get_session
 from db.models import SubscribeType
@@ -34,7 +33,7 @@ logger = logging.getLogger(__name__)
             response_model=list[TransactionDetail])
 async def user_transactions(db: AsyncSession = Depends(get_session),
                             current_user: User = Depends(get_user)):
-    queryset = await db.execute(select(models.Transaction).where(models.Transaction.user_id == current_user.id))
+    queryset = await db.execute(select(Transaction).where(Transaction.user_id == current_user.id))
     transactions = queryset.scalars().all()
     return transactions
 
@@ -71,6 +70,7 @@ async def redirect_url():
              response_model=OkBody)
 async def payment_callback(request: Request, db: AbstractDatabase = Depends(get_db),
                            billing: AbstractBilling = Depends(get_billing_service)):
+    logger.info(request.json())
     payment = await billing.get_payment_object(await request.json(), card=True)
     transaction = await db.update_transaction(payment)
     if transaction.status == 'succeeded':

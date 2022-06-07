@@ -89,13 +89,12 @@ class YookassaBilling(AbstractBilling):
             transaction = await self.db.create_transaction(subscribe_type, current_user)
             headers, payment_info = await self._get_payment_info(subscribe_type, transaction)
             payment = await self._payment_request(self.url, headers, payment_info)
-            logger.info(payment)
             transaction.status = payment.status
             transaction.aggregator_id = payment.id
             logger.debug(payment)
             payment_url = payment.confirmation_url
             await self.cache.set(self.idempotence_key, payment_url)
-        logger.info(payment_url)
+        logger.debug(payment_url)
         return payment_url
 
     async def auto_payment(self, subscribe: Subscribe):
@@ -129,6 +128,7 @@ class YookassaBilling(AbstractBilling):
         confirmation_url = True if 'confirmation' in payment_info else False
         card = True if 'payment_method_id' in payment_info else False
 
+        logger.info(f'Request to aggregator')
         async with httpx.AsyncClient(auth=(str(self.account_id), self.secret_key)) as client:
             response = await client.post(url, headers=headers, json=payment_info)
 
@@ -140,7 +140,7 @@ class YookassaBilling(AbstractBilling):
         logger.info(response.json())
 
         payment = await self.get_payment_object(response.json(), card, confirmation_url)
-        logger.info(payment)
+        logger.debug(payment)
         return payment
 
     async def get_payment_object(self, payment_response,

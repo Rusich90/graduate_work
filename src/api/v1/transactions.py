@@ -70,6 +70,7 @@ async def redirect_url():
              response_model=OkBody)
 async def payment_callback(request: Request, db: AbstractDatabase = Depends(get_db),
                            billing: AbstractBilling = Depends(get_billing_service)):
+    logger.info(request.json())
     payment = await billing.get_payment_object(await request.json(), card=True)
     transaction = await db.update_transaction(payment)
     if transaction.status == 'succeeded':

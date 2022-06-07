@@ -75,6 +75,7 @@ class AlchemyDatabase(AbstractDatabase):
         try:
             self.session.add(subscribe)
             await self.session.flush()
+            logger.info(f'Subscribe create successful')
         except sqlalchemy.exc.IntegrityError:
             logger.error('Duplicate transaction_id')
         # TODO: Add kafka producer to AUTH
@@ -107,12 +108,10 @@ class AlchemyDatabase(AbstractDatabase):
         return subscribes
 
     async def update_transaction(self, payment: Payment) -> Transaction:
-        logger.info(payment)
         query = await self.session.execute(select(Transaction).where(
             Transaction.aggregator_id == str(payment.id)
         ))
         transaction = query.scalar()
-        logger.info(transaction)
         transaction.status = payment.status
         transaction.failed_reason = payment.failed_reason
         transaction.card_4_numbers = payment.card

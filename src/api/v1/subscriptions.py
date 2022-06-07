@@ -37,7 +37,7 @@ async def user_subscriptions(db: AsyncSession = Depends(get_session),
 
 @router.patch('/{subscription_id}',
               tags=['Subscriptions'],
-              summary='Отмена или возврат автоподписки',
+              summary='Отмена автоподписки',
               response_model=SubscriptionBaseSchema)
 async def user_subscriptions(body: SubscriptionUpdateSchema,
                              subscription_id: UUID,

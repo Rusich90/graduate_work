@@ -1,3 +1,5 @@
+from typing import Optional
+
 from pydantic import BaseSettings
 from pydantic import SecretStr
 
@@ -47,6 +49,7 @@ class JWTSettings(BaseSettings):
 
 class LoggingSettings(BaseSettings):
     level: str
+    sentry_dsn: Optional[str]
 
     class Config:
         env_prefix = "LOG_"

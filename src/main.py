@@ -1,11 +1,14 @@
 import aioredis
+import sentry_sdk
 import uvicorn
 from fastapi import FastAPI
 from fastapi.responses import ORJSONResponse
+from sentry_sdk.integrations.asgi import SentryAsgiMiddleware
 
 from api.v1 import subscriptions
 from api.v1 import transactions
 from core.logger import LOGGING
+from core.logger import config
 from db import cache
 
 app = FastAPI(
@@ -16,6 +19,10 @@ app = FastAPI(
     openapi_url='/api/openapi.json',
     default_response_class=ORJSONResponse,
 )
+
+if config.sentry_dsn:
+    sentry_sdk.init(dsn=config.sentry_dsn)
+    app.add_middleware(SentryAsgiMiddleware)
 
 
 @app.on_event('startup')

@@ -50,8 +50,8 @@ class TransactionDetail(CustomModel):
     amount: int
     status: str
     created_at: datetime
-    failed_reason: str = None
-    card_4_numbers: int
+    failed_reason: Optional[str]
+    card_4_numbers: Optional[int]
 
     class Config:
         orm_mode = True

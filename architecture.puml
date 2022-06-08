@@ -1,25 +1,66 @@
 @startuml
-skinparam componentStyle uml2
-actor Админ as Admin
-note top of Admin: Просмотр транзакций\nУправление подписками\nВозврат средств
-actor Пользователи as Clients
-component AdminPanel
-component Auth
-component Scheduler
-queue Queue
-note top of Scheduler: Проверка окончания подписки\nАвто продление подписки\nИзменение статуса пользователя
-component Billing
-database DataBase
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+!define DEVICONS https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/master/devicons
+!define FONTAWESOME https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/master/font-awesome-5
+!include FONTAWESOME/users.puml
+AddElementTag("old_service", $shape=RoundedBoxShape(), $bgColor="Black", $fontColor="white", $legendText="Готовый сервис")
+AddElementTag("not_realise", $shape=RoundedBoxShape(), $bgColor="Grey", $fontColor="white", $legendText="Не реализовано")
+AddElementTag("realise", $shape=RoundedBoxShape(), $bgColor="Green", $fontColor="white", $legendText="Реализовано")
+title Yanflix Billing
 
-Admin --> AdminPanel
-Clients --> Billing
-AdminPanel ---> DataBase
-Billing --> DataBase
-Scheduler --> DataBase
-Billing --> Queue
-Scheduler --> Queue
-Queue --> Auth : Изменение подписки пользователя
+LAYOUT_LANDSCAPE()
+
+AddRelTag("red", $lineColor="red")
+actor Админы as Admins
+
+Container(etl, "ETL", '', $tags = "old_service")
+Container(elk, "ELK LOGS", '', $tags = "not_realise")
+Container(aggregator, "Aggregator API", '', $tags = "realise")
+
+ContainerDb(queue, "Queue", 'Kafka', $tags = "not_realise")
+ContainerDb(queue2, "Queue", 'RabbitMQ', $tags = "not_realise")
+
+Boundary(notifications, "Сервис Нотификаций") {
+    Container(notification, "Notification", 'Python', $tags = "old_service")
+}
+
+Boundary(admins, "Админ Панель") {
+    Container(admin_panel, "Admin Panel", "Django", $tags = "old_service")
+}
+
+Boundary(auth_bound, "Сервис авторизации") {
+    Container(auth, "Auth", 'Flask', $tags = "old_service")
+}
+
+Boundary(movies, "Сервис с фильмами") {
+    Container(async_api, "Async API", 'FastAPI', $tags = "old_service")
+}
+
+Boundary(billing, "Сервис биллинга") {
+    ContainerDb(billing_db, "Billing DB", "Postgres", $tags = "realise")
+    Container(billing_api, "Billing API", 'FastAPI', $tags = "realise")
+    Container(billing_scheduler, "Scheduler", 'Python', $tags = "realise")
+}
 
 
+Rel(billing_scheduler, billing_api, ' ')
+Rel_U(billing_api,  billing_db, ' ')
+Rel_L(billing_api,  elk, ' ')
+BiRel_L(billing_api,  aggregator, ' ')
+Rel(billing_api,  queue, 'Информация о подписках')
+Rel_L(queue,  billing_api, ' ')
+Rel_U(billing_api,  queue2, ' ')
+
+Rel(queue,  auth, ' ')
+BiRel_D(queue,  admin_panel, 'Типы подписок')
+Rel(queue2,  notification, 'Сообщения по успешным оплаткам')
+Rel_L(admin_panel,  billing_db, ' Транзакции и возвраты', $tags="red")
+Rel_R(admin_panel, etl, ' ')
+Rel(etl, async_api, ' ')
+
+Rel_U(Admins, admin_panel, ' ')
+
+
+SHOW_LEGEND()
 
 @enduml

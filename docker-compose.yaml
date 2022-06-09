@@ -2,8 +2,6 @@ services:
   db:
     image: postgres:13-alpine
     restart: always
-    ports:
-      - '5432:5432'
     volumes:
       - ./postgresql:/var/lib/postgresql/data
     env_file:
@@ -17,8 +15,6 @@ services:
   redis:
     image: redis:6.2-alpine
     restart: always
-    ports:
-      - '6379:6379'
 
   app:
     build: .
@@ -42,7 +38,7 @@ services:
       - .env
 
   nginx:
-    image: nginx:1.19.2
+    image: nginx:1.21.6
     volumes:
       - ./src/core/nginx.conf:/etc/nginx/nginx.conf
       - ./src/core/site_configs:/etc/nginx/conf.d

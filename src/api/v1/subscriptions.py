@@ -4,19 +4,15 @@ from fastapi import APIRouter
 from fastapi import Depends
 from fastapi import HTTPException
 from fastapi import status
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
-from sqlalchemy.orm import selectinload
 
 from core.authentication import User
 from core.authentication import get_user
-from db.config import get_session
-from db.models import Subscribe
-from db.models import SubscribeType
 from db.schemas import SubscriptionBaseSchema
 from db.schemas import SubscriptionSchema
 from db.schemas import SubscriptionTypeSchema
 from db.schemas import SubscriptionUpdateSchema
+from services.database import AbstractDatabase
+from services.database import get_db
 
 router = APIRouter()
 
@@ -25,33 +21,31 @@ router = APIRouter()
             tags=['Subscriptions'],
             summary='Список текущих подписок юзера',
             response_model=list[SubscriptionSchema])
-async def user_subscriptions(db: AsyncSession = Depends(get_session),
+async def user_subscriptions(db: AbstractDatabase = Depends(get_db),
                              current_user: User = Depends(get_user)):
-    queryset = select(Subscribe).where(
-        Subscribe.user_id == current_user.id
-    ).options(selectinload(Subscribe.subscribe_type))
-    queryset = await db.execute(queryset)
-    transactions = queryset.scalars().all()
-    return transactions
+    subscriptions = await db.get_all_user_subscriptions(current_user.id)
+    return subscriptions
 
 
 @router.patch('/{subscription_id}',
               tags=['Subscriptions'],
               summary='Отмена автоподписки',
               response_model=SubscriptionBaseSchema)
-async def user_subscriptions(body: SubscriptionUpdateSchema,
-                             subscription_id: UUID,
-                             db: AsyncSession = Depends(get_session),
-                             current_user: User = Depends(get_user)):
-    subscribe = await db.get(Subscribe, subscription_id)
+async def update_renewal(body: SubscriptionUpdateSchema,
+                         subscription_id: UUID,
+                         db: AbstractDatabase = Depends(get_db),
+                         current_user: User = Depends(get_user)):
+    subscribe = await db.get_subscribe(subscription_id)
+
     if not subscribe:
         msg = "Not correct id"
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=msg)
     if subscribe.user_id != current_user.id:
         msg = "You don't have enough permission"
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=msg)
-    subscribe.auto_renewal = body.auto_renewal
-    return subscribe
+
+    updated_subscribe = await db.update_renewal(subscribe, body.auto_renewal)
+    return updated_subscribe
 
 
 @router.get('/types',
@@ -60,7 +54,6 @@ async def user_subscriptions(body: SubscriptionUpdateSchema,
             description='Список всех подписох с их ценами',
             response_model=list[SubscriptionTypeSchema]
             )
-async def subscription_types(db: AsyncSession = Depends(get_session)):
-    queryset = await db.execute(select(SubscribeType))
-    subscriptions = queryset.scalars().all()
-    return subscriptions
+async def subscription_types(db: AbstractDatabase = Depends(get_db)):
+    subscriptions_types = await db.get_all_subscription_types()
+    return subscriptions_types

@@ -3,10 +3,12 @@ import logging
 from abc import ABC
 from abc import abstractmethod
 from datetime import date
+from uuid import UUID
 
 import sqlalchemy.exc
 from dateutil.relativedelta import relativedelta
 from fastapi import Depends
+from fastapi_pagination import paginate
 from sqlalchemy import Date
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -14,10 +16,10 @@ from sqlalchemy.orm import selectinload
 
 from core.authentication import User
 from db.config import get_session
+from db.models import Refund
 from db.models import Subscribe
 from db.models import SubscribeType
 from db.models import Transaction
-from db.models import Refund
 from db.schemas import Payment
 
 logger = logging.getLogger(__name__)
@@ -43,6 +45,34 @@ class AbstractDatabase(ABC):
 
     @abstractmethod
     async def create_refund(self, payment: Payment, transaction: Transaction) -> None:
+        pass
+
+    @abstractmethod
+    async def get_all_subscription_types(self) -> list[SubscribeType]:
+        pass
+
+    @abstractmethod
+    async def get_subscribe(self, subscription_id: UUID) -> Subscribe:
+        pass
+
+    @abstractmethod
+    async def get_all_user_subscriptions(self, user_id: UUID):
+        pass
+
+    @abstractmethod
+    async def get_transaction(self, transaction_id: UUID):
+        pass
+
+    @abstractmethod
+    async def get_subscribe_type(self, subscribe_type_id: int):
+        pass
+
+    @abstractmethod
+    async def get_all_user_transactions(self, user_id: UUID):
+        pass
+
+    @abstractmethod
+    async def update_renewal(self, subscribe: Subscribe, renewal: bool):
         pass
 
 
@@ -116,6 +146,35 @@ class AlchemyDatabase(AbstractDatabase):
         transaction.failed_reason = payment.failed_reason
         transaction.card_4_numbers = payment.card
         return transaction
+
+    async def get_all_subscription_types(self) -> list[SubscribeType]:
+        queryset = await self.session.execute(select(SubscribeType))
+        return queryset.scalars().all()
+
+    async def get_subscribe(self, subscription_id: UUID) -> Subscribe:
+        subscribe = await self.session.get(Subscribe, subscription_id)
+        return subscribe
+
+    async def get_all_user_subscriptions(self, user_id: UUID):
+        queryset = select(Subscribe).where(
+            Subscribe.user_id == user_id
+        ).options(selectinload(Subscribe.subscribe_type))
+        queryset = await self.session.execute(queryset)
+        return queryset.scalars().all()
+
+    async def get_all_user_transactions(self, user_id: UUID):
+        queryset = await self.session.execute(select(Transaction).where(Transaction.user_id == user_id))
+        return paginate(queryset.scalars().all())
+
+    async def get_transaction(self, transaction_id: UUID):
+        return await self.session.get(Transaction, transaction_id)
+
+    async def get_subscribe_type(self, subscribe_type_id: int):
+        return await self.session.get(SubscribeType, subscribe_type_id)
+
+    async def update_renewal(self, subscribe: Subscribe, renewal: bool):
+        subscribe.auto_renewal = renewal
+        return subscribe
 
 
 async def get_db(session: AsyncSession = Depends(get_session)) -> AlchemyDatabase:

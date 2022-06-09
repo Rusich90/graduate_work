@@ -3,6 +3,7 @@ import sentry_sdk
 import uvicorn
 from fastapi import FastAPI
 from fastapi.responses import ORJSONResponse
+from fastapi_pagination import add_pagination
 from sentry_sdk.integrations.asgi import SentryAsgiMiddleware
 
 from api.v1 import subscriptions
@@ -37,6 +38,7 @@ async def shutdown():
 app.include_router(transactions.router, prefix='/api/v1/transactions')
 app.include_router(subscriptions.router, prefix='/api/v1/subscriptions')
 
+add_pagination(app)
 
 if __name__ == '__main__':
     uvicorn.run(

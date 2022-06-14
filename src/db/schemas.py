@@ -69,6 +69,10 @@ class OkBody(BaseModel):
     detail: str
 
 
+class PaymentUrlBody(BaseModel):
+    payment_url: str
+
+
 class Payment(BaseModel):
     id: UUID
     status: str

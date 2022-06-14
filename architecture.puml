@@ -11,14 +11,12 @@ title Yanflix Billing
 LAYOUT_LANDSCAPE()
 
 AddRelTag("red", $lineColor="red")
-actor Админы as Admins
 
-Container(etl, "ETL", '', $tags = "old_service")
-Container(elk, "ELK LOGS", '', $tags = "not_realise")
+Container(elk, "ELK LOGS", '', $tags = "old_service")
 Container(aggregator, "Aggregator API", '', $tags = "realise")
 
-ContainerDb(queue, "Queue", 'Kafka', $tags = "not_realise")
-ContainerDb(queue2, "Queue", 'RabbitMQ', $tags = "not_realise")
+ContainerDb(queue, "Queue", 'Kafka', $tags = "old_service")
+ContainerDb(queue2, "Queue", 'RabbitMQ', $tags = "old_service")
 
 Boundary(notifications, "Сервис Нотификаций") {
     Container(notification, "Notification", 'Python', $tags = "old_service")
@@ -32,9 +30,6 @@ Boundary(auth_bound, "Сервис авторизации") {
     Container(auth, "Auth", 'Flask', $tags = "old_service")
 }
 
-Boundary(movies, "Сервис с фильмами") {
-    Container(async_api, "Async API", 'FastAPI', $tags = "old_service")
-}
 
 Boundary(billing, "Сервис биллинга") {
     ContainerDb(billing_db, "Billing DB", "Postgres", $tags = "realise")
@@ -45,20 +40,17 @@ Boundary(billing, "Сервис биллинга") {
 
 Rel(billing_scheduler, billing_api, ' ')
 Rel_U(billing_api,  billing_db, ' ')
-Rel_L(billing_api,  elk, ' ')
+Rel_L(billing_api,  elk, ' ', $tags="red")
 BiRel_L(billing_api,  aggregator, ' ')
-Rel(billing_api,  queue, 'Информация о подписках')
-Rel_L(queue,  billing_api, ' ')
-Rel_U(billing_api,  queue2, ' ')
+Rel(billing_api,  queue, 'Изменения подписок', $tags="red")
+Rel_L(queue,  billing_api, ' Типы подписок', $tags="red")
+Rel_U(billing_api,  queue2, ' ', $tags="red")
 
-Rel(queue,  auth, ' ')
-BiRel_D(queue,  admin_panel, 'Типы подписок')
-Rel(queue2,  notification, 'Сообщения по успешным оплаткам')
-Rel_L(admin_panel,  billing_db, ' Транзакции и возвраты', $tags="red")
-Rel_R(admin_panel, etl, ' ')
-Rel(etl, async_api, ' ')
-
-Rel_U(Admins, admin_panel, ' ')
+Rel(queue,  auth, ' Изменения подписок', $tags="red")
+Rel_U(queue,  admin_panel, ' ', $tags="red")
+Rel_D(admin_panel,  queue, 'Типы подписок', $tags="red")
+Rel(queue2,  notification, 'Сообщения по успешным оплаткам', $tags="red")
+Rel_L(admin_panel,  billing_db, ' Просмотр транзакций')
 
 
 SHOW_LEGEND()

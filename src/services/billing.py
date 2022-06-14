@@ -46,6 +46,9 @@ class AbstractBilling(ABC):
 
 
 class YookassaBilling(AbstractBilling):
+    """
+    Class for operate with billing aggregator
+    """
     account_id = config.id
     secret_key = config.token.get_secret_value()
     url = config.url
@@ -59,6 +62,9 @@ class YookassaBilling(AbstractBilling):
 
     async def _get_payment_info(self, subscribe_type: SubscribeType, transaction: Transaction,
                                 aggregator_id=None) -> (dict, dict):
+        """
+        Build payment body for different payment
+        """
         headers = {'Idempotence-Key': str(transaction.id)}
         payment_info = {
             "amount": {
@@ -69,8 +75,10 @@ class YookassaBilling(AbstractBilling):
             "description": transaction.description,
         }
         if aggregator_id:
+            # If auto payment
             payment_info['payment_method_id'] = str(aggregator_id)
         else:
+            # Usual payment
             payment_info['save_payment_method'] = True
             payment_info['confirmation'] = {
                 "type": "redirect",
@@ -80,9 +88,15 @@ class YookassaBilling(AbstractBilling):
 
     @staticmethod
     async def _get_idempotence_key(user_id: UUID, subscribe_id: int):
+        """
+        Create idempotence key from user id and subscribe id
+        """
         return str(f'{user_id}_{subscribe_id}')
 
     async def get_payment_url(self, subscribe_type, current_user):
+        """
+        Check idempotence key and return redirect url from cache or from aggregator
+        """
         self.idempotence_key = await self._get_idempotence_key(current_user.id, subscribe_type.id)
         payment_url = await self.cache.get(self.idempotence_key)
         if not payment_url:
@@ -98,6 +112,9 @@ class YookassaBilling(AbstractBilling):
         return payment_url
 
     async def auto_payment(self, subscribe: Subscribe):
+        """
+        Auto payment logic: create payment from user subscribe transaction
+        """
         user = User(id=subscribe.user_id)
         aggregator_id = subscribe.transaction.aggregator_id
         transaction = await self.db.create_transaction(subscribe.subscribe_type, user)
@@ -111,6 +128,9 @@ class YookassaBilling(AbstractBilling):
         await self.db.update_subscribe(subscribe)
 
     async def refund_payment(self, transaction: Transaction):
+        """
+        Refund logic
+        """
         payment_info = {
             "amount": {
                 "value": float(transaction.amount),
@@ -125,6 +145,9 @@ class YookassaBilling(AbstractBilling):
         # TODO: send to kafka subscribe delete
 
     async def _payment_request(self, url, headers, payment_info) -> Payment:
+        """
+        Make request to billing aggregator and return payment object
+        """
         confirmation_url = True if 'confirmation' in payment_info else False
         card = True if 'payment_method_id' in payment_info else False
 
@@ -145,6 +168,9 @@ class YookassaBilling(AbstractBilling):
 
     async def get_payment_object(self, payment_response,
                                  card: bool = False, url: bool = False) -> Payment:
+        """
+        Create payment object from response
+        """
         if 'object' in payment_response:
             payment_response = payment_response['object']
 

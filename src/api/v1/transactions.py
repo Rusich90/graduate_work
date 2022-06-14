@@ -6,17 +6,15 @@ from fastapi import HTTPException
 from fastapi import Request
 from fastapi import status
 from fastapi.responses import RedirectResponse
-from sqlalchemy.future import select
+from fastapi_pagination import Page
 
 from core.authentication import User
 from core.authentication import get_user
-from db.config import AsyncSession
-from db.config import get_session
-from db.models import SubscribeType
-from db.models import Transaction
 from db.schemas import OkBody
+from db.schemas import PaymentUrlBody
+from db.schemas import TransactionCreate
 from db.schemas import TransactionDetail
-from db.schemas import TransactionCreate, TransactionRefund
+from db.schemas import TransactionRefund
 from services.billing import AbstractBilling
 from services.billing import get_billing_service
 from services.database import AbstractDatabase
@@ -30,28 +28,27 @@ logger = logging.getLogger(__name__)
 @router.get('',
             tags=['Transactions'],
             summary='Список всех транзакций юзера',
-            response_model=list[TransactionDetail])
-async def user_transactions(db: AsyncSession = Depends(get_session),
+            response_model=Page[TransactionDetail])
+async def user_transactions(db: AbstractDatabase = Depends(get_db),
                             current_user: User = Depends(get_user)):
-    queryset = await db.execute(select(Transaction).where(Transaction.user_id == current_user.id))
-    transactions = queryset.scalars().all()
+    transactions = await db.get_all_user_transactions(current_user.id)
     return transactions
 
 
 @router.post('',
              tags=['Transactions'],
              summary='Создание новой транзакции',
-             status_code=status.HTTP_302_FOUND)
+             response_model=PaymentUrlBody)
 async def payment(body: TransactionCreate,
                   billing: AbstractBilling = Depends(get_billing_service),
-                  db: AsyncSession = Depends(get_session),
+                  db: AbstractDatabase = Depends(get_db),
                   current_user: User = Depends(get_user)):
-    subscribe_type = await db.get(SubscribeType, body.subscribe_type_id)
+    subscribe_type = await db.get_subscribe_type(body.subscribe_type_id)
     if not subscribe_type:
         msg = "Not correct id"
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=msg)
     payment_url = await billing.get_payment_url(subscribe_type, current_user)
-    return RedirectResponse(payment_url, status_code=status.HTTP_302_FOUND)
+    return PaymentUrlBody(payment_url=payment_url)
 
 
 @router.get('/redirect',
@@ -68,7 +65,8 @@ async def redirect_url():
              summary='Эндпоинты для коллбэка от аггрегатора',
              status_code=status.HTTP_200_OK,
              response_model=OkBody)
-async def payment_callback(request: Request, db: AbstractDatabase = Depends(get_db),
+async def payment_callback(request: Request,
+                           db: AbstractDatabase = Depends(get_db),
                            billing: AbstractBilling = Depends(get_billing_service)):
     logger.info(await request.json())
     payment = await billing.get_payment_object(await request.json(), card=True)
@@ -84,9 +82,9 @@ async def payment_callback(request: Request, db: AbstractDatabase = Depends(get_
              )
 async def payment(body: TransactionRefund,
                   billing: AbstractBilling = Depends(get_billing_service),
-                  db: AsyncSession = Depends(get_session),
+                  db: AbstractDatabase = Depends(get_db),
                   current_user: User = Depends(get_user)):
-    transaction = await db.get(Transaction, body.transaction_id)
+    transaction = await db.get_transaction(body.transaction_id)
     if not transaction or transaction.user_id != current_user.id:
         msg = "Not correct id"
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=msg)
